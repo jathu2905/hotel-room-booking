@@ -44,7 +44,7 @@ if(isset($_POST['submit'])){
    <meta charset="UTF-8">
    <meta http-equiv="X-UA-Compatible" content="IE=edge">
    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-   <title>Register</title>
+   <title>Register - Sha Stay Admin</title>
 
    <!-- font awesome cdn link  -->
    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css">
@@ -59,22 +59,23 @@ if(isset($_POST['submit'])){
 <?php include '../components/admin_header.php'; ?>
 <!-- header section ends -->
 
-<!-- register section starts  -->
+<div class="admin-container">
 
-<section class="form-container">
+   <!-- register section starts  -->
+   <section class="form-container">
 
-   <form action="" method="POST">
-      <h3>register new</h3>
-      <input type="text" name="name" placeholder="enter username" maxlength="20" class="box" required oninput="this.value = this.value.replace(/\s/g, '')">
-      <input type="password" name="pass" placeholder="enter password" maxlength="20" class="box" required oninput="this.value = this.value.replace(/\s/g, '')">
-      <input type="password" name="c_pass" placeholder="confirm password" maxlength="20" class="box" required oninput="this.value = this.value.replace(/\s/g, '')">
-      <input type="submit" value="register now" name="submit" class="btn">
-   </form>
+      <form action="" method="POST">
+         <h3>register new admin</h3>
+         <input type="text" name="name" placeholder="enter username" maxlength="20" class="box" required oninput="this.value = this.value.replace(/\s/g, '')">
+         <input type="password" name="pass" placeholder="enter password" maxlength="20" class="box" required oninput="this.value = this.value.replace(/\s/g, '')">
+         <input type="password" name="c_pass" placeholder="confirm password" maxlength="20" class="box" required oninput="this.value = this.value.replace(/\s/g, '')">
+         <input type="submit" value="register now" name="submit" class="btn" style="width: 100%; padding: 1.4rem;">
+      </form>
 
-</section>
+   </section>
+   <!-- register section ends -->
 
-<!-- register section ends -->
-
+</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert/2.1.2/sweetalert.min.js"></script>
 

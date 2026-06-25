@@ -191,11 +191,69 @@ include 'components/controllers/index_controller.php';
    </div>
 
 </section>
+<!-- dynamic rooms section starts -->
+<section class="rooms" id="rooms">
+
+   <h1 class="heading">our luxury rooms</h1>
+
+   <div class="rooms-grid">
+      <?php
+         $select_rooms = $conn->prepare("SELECT * FROM `rooms` WHERE status = 'available'");
+         $select_rooms->execute();
+         if($select_rooms->rowCount() > 0){
+            while($fetch_room = $select_rooms->fetch(PDO::FETCH_ASSOC)){
+               $amenities_arr = explode(',', $fetch_room['amenities']);
+      ?>
+      <div class="room-card">
+         <div class="room-image">
+            <img src="images/<?= $fetch_room['image']; ?>" alt="<?= $fetch_room['name']; ?>">
+            <div class="room-price">$<?= $fetch_room['price']; ?> / Night</div>
+         </div>
+         <div class="room-content">
+            <h3 class="room-title"><?= $fetch_room['name']; ?></h3>
+            <p class="room-desc"><?= $fetch_room['description']; ?></p>
+            <div class="room-specs">
+               <span><i class="fas fa-bed"></i> <?= $fetch_room['type']; ?></span>
+               <span><i class="fas fa-users"></i> Max <?= $fetch_room['capacity_adults']; ?> Guests</span>
+            </div>
+            <div class="room-amenities">
+               <?php foreach($amenities_arr as $amenity){ ?>
+                  <span class="amenity-tag"><?= trim($amenity); ?></span>
+               <?php } ?>
+            </div>
+            <a href="#reservation" class="btn book-room-btn" data-room-id="<?= $fetch_room['id']; ?>" data-room-price="<?= $fetch_room['price']; ?>" style="display: block; text-align: center; width: 100%;">Book Room</a>
+         </div>
+      </div>
+      <?php
+            }
+         } else {
+            echo '<p class="empty" style="text-align:center; width:100%; font-size:1.8rem; color:var(--text-muted);">No luxury rooms available at the moment!</p>';
+         }
+      ?>
+   </div>
+
+</section>
+<!-- dynamic rooms section ends -->
+
+<!-- reservation section starts -->
 <section class="reservation" id="reservation">
 
-   <form action="" method="post">
+   <form action="" method="post" id="reservation_form">
       <h3>make a reservation</h3>
       <div class="flex">
+         <div class="box">
+            <p>select room <span>*</span></p>
+            <select name="room_id" id="room_id" class="input" required>
+               <option value="" disabled selected>-- select room type --</option>
+               <?php
+                  $select_rooms_list = $conn->prepare("SELECT * FROM `rooms` WHERE status = 'available'");
+                  $select_rooms_list->execute();
+                  while($room_item = $select_rooms_list->fetch(PDO::FETCH_ASSOC)){
+                     echo '<option value="'.$room_item['id'].'" data-price="'.$room_item['price'].'">'.$room_item['name'].' ($'.$room_item['price'].'/night)</option>';
+                  }
+               ?>
+            </select>
+         </div>
          <div class="box">
             <p>your name <span>*</span></p>
             <input type="text" name="name" maxlength="50" required placeholder="enter your name" class="input">
@@ -209,8 +267,8 @@ include 'components/controllers/index_controller.php';
             <input type="number" name="number" maxlength="10" min="0" max="9999999999" required placeholder="enter your number" class="input">
          </div>
          <div class="box">
-            <p>rooms <span>*</span></p>
-            <select name="rooms" class="input" required>
+            <p>rooms count <span>*</span></p>
+            <select name="rooms" id="rooms_count" class="input" required>
                <option value="1" selected>1 room</option>
                <option value="2">2 rooms</option>
                <option value="3">3 rooms</option>
@@ -221,11 +279,11 @@ include 'components/controllers/index_controller.php';
          </div>
          <div class="box">
             <p>check in <span>*</span></p>
-            <input type="date" name="check_in" class="input" required>
+            <input type="date" name="check_in" id="check_in" class="input" required>
          </div>
          <div class="box">
             <p>check out <span>*</span></p>
-            <input type="date" name="check_out" class="input" required>
+            <input type="date" name="check_out" id="check_out" class="input" required>
          </div>
          <div class="box">
             <p>adults <span>*</span></p>
@@ -251,10 +309,17 @@ include 'components/controllers/index_controller.php';
             </select>
          </div>
       </div>
-      <input type="submit" value="book now" name="book" class="btn">
+      
+      <div class="price-preview-box" id="price_preview_box">
+         <p>Estimated Net Total</p>
+         <div class="price-amount" id="total_estimated_price">$0</div>
+      </div>
+
+      <input type="submit" value="book now" name="book" class="btn" style="width: 100%; margin-top: 1.5rem;">
    </form>
 
 </section>
+<!-- reservation section ends -->
 
 <section class="gallery" id="gallery">
 
@@ -384,8 +449,70 @@ include 'components/controllers/index_controller.php';
     spaceBetween: 20,
     slidesPerView: 1,
   });
+
+  // Scroll to reservation and pre-select room when Book Room button is clicked
+  document.querySelectorAll('.book-room-btn').forEach(btn => {
+     btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        const roomId = this.getAttribute('data-room-id');
+        const roomSelect = document.getElementById('room_id');
+        if (roomSelect) {
+           roomSelect.value = roomId;
+           roomSelect.dispatchEvent(new Event('change'));
+        }
+        const reservationSection = document.getElementById('reservation');
+        if (reservationSection) {
+           reservationSection.scrollIntoView({ behavior: 'smooth' });
+        }
+     });
+  });
+
+  // Estimated Price Calculator
+  const roomIdSelect = document.getElementById('room_id');
+  const checkInInput = document.getElementById('check_in');
+  const checkOutInput = document.getElementById('check_out');
+  const roomsCountSelect = document.getElementById('rooms_count');
+  const pricePreviewBox = document.getElementById('price_preview_box');
+  const totalEstimatedPrice = document.getElementById('total_estimated_price');
+
+  function calculateEstimate() {
+     if (!roomIdSelect || !checkInInput || !checkOutInput || !roomsCountSelect) return;
+     
+     const selectedOption = roomIdSelect.options[roomIdSelect.selectedIndex];
+     if (!selectedOption || roomIdSelect.value === "") {
+        pricePreviewBox.style.display = 'none';
+        return;
+     }
+     
+     const pricePerNight = parseFloat(selectedOption.getAttribute('data-price'));
+     const checkInVal = checkInInput.value;
+     const checkOutVal = checkOutInput.value;
+     const roomsCount = parseInt(roomsCountSelect.value) || 1;
+     
+     if (checkInVal && checkOutVal) {
+        const date1 = new Date(checkInVal);
+        const date2 = new Date(checkOutVal);
+        const timeDiff = date2.getTime() - date1.getTime();
+        const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
+        
+        if (daysDiff > 0 && pricePerNight > 0) {
+           const totalPrice = pricePerNight * roomsCount * daysDiff;
+           totalEstimatedPrice.textContent = '$' + totalPrice.toLocaleString();
+           pricePreviewBox.style.display = 'block';
+        } else {
+           pricePreviewBox.style.display = 'none';
+        }
+     } else {
+        pricePreviewBox.style.display = 'none';
+     }
+  }
+
+  if (roomIdSelect) roomIdSelect.addEventListener('change', calculateEstimate);
+  if (checkInInput) checkInInput.addEventListener('change', calculateEstimate);
+  if (checkOutInput) checkOutInput.addEventListener('change', calculateEstimate);
+  if (roomsCountSelect) roomsCountSelect.addEventListener('change', calculateEstimate);
 </script>
 <script src="https://unpkg.com/swiper/swiper-bundle.min.js"></script>
 
 </body>
-</html>S
+</html>

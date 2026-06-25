@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Montserrat:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,300..700;1,300..700&family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap');
 
 :root {
    --primary-gold: #D4AF37;
@@ -46,7 +46,7 @@ section {
 
 /* Typography */
 h1, h2, h3, h4, h5, h6 {
-   font-family: 'Playfair Display', serif;
+   font-family: 'Cormorant', serif;
    color: var(--primary-gold);
    line-height: 1.2;
 }
@@ -485,4 +485,165 @@ p {
 @media (max-width: 450px) {
    html { font-size: 50%; }
    .heading { font-size: 3rem; }
+}
+
+/* Status Badges */
+.badge {
+   display: inline-block;
+   padding: 0.5rem 1.2rem;
+   border-radius: 5rem;
+   font-size: 1.2rem;
+   font-weight: 600;
+   text-transform: uppercase;
+   letter-spacing: 0.1rem;
+   margin-bottom: 1rem;
+}
+
+.badge.pending {
+   background: rgba(234, 179, 8, 0.2);
+   color: #eab308;
+   border: 1px solid rgba(234, 179, 8, 0.4);
+}
+
+.badge.confirmed {
+   background: rgba(34, 197, 94, 0.2);
+   color: #22c55e;
+   border: 1px solid rgba(34, 197, 94, 0.4);
+}
+
+.badge.completed {
+   background: rgba(59, 130, 246, 0.2);
+   color: #3b82f6;
+   border: 1px solid rgba(59, 130, 246, 0.4);
+}
+
+.badge.cancelled {
+   background: rgba(239, 68, 68, 0.2);
+   color: #ef4444;
+   border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+/* Room Details & Pricing Preview */
+.rooms-grid {
+   display: grid;
+   grid-template-columns: repeat(auto-fit, minmax(33rem, 1fr));
+   gap: 3rem;
+}
+
+.room-card {
+   background: var(--card-bg);
+   border: var(--glass-border);
+   border-radius: 1.2rem;
+   overflow: hidden;
+   transition: all 0.3s ease;
+}
+
+.room-card:hover {
+   transform: translateY(-8px);
+   border-color: var(--primary-gold);
+   box-shadow: 0 10px 25px -5px rgba(212, 175, 55, 0.2);
+}
+
+.room-card .room-image {
+   position: relative;
+   height: 25rem;
+   width: 100%;
+}
+
+.room-card .room-image img {
+   height: 100%;
+   width: 100%;
+   object-fit: cover;
+}
+
+.room-card .room-price {
+   position: absolute;
+   top: 1.5rem;
+   right: 1.5rem;
+   background: rgba(15, 23, 42, 0.85);
+   backdrop-filter: blur(8px);
+   border: var(--glass-border);
+   padding: 0.8rem 1.5rem;
+   border-radius: 0.8rem;
+   color: var(--primary-gold);
+   font-weight: 700;
+   font-size: 1.6rem;
+}
+
+.room-card .room-content {
+   padding: 2.5rem;
+}
+
+.room-card .room-title {
+   font-size: 2.4rem;
+   margin-bottom: 1rem;
+   color: var(--text-light);
+}
+
+.room-card .room-desc {
+   font-size: 1.4rem;
+   color: var(--text-muted);
+   margin-bottom: 2rem;
+   height: 6.6rem;
+   overflow: hidden;
+   display: -webkit-box;
+   -webkit-line-clamp: 3;
+   -webkit-box-orient: vertical;
+}
+
+.room-card .room-specs {
+   display: flex;
+   justify-content: space-between;
+   border-top: 1px solid rgba(255, 255, 255, 0.08);
+   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+   padding: 1.2rem 0;
+   margin-bottom: 2rem;
+}
+
+.room-card .room-specs span {
+   font-size: 1.3rem;
+   color: var(--text-muted);
+}
+
+.room-card .room-specs span i {
+   color: var(--primary-gold);
+   margin-right: 0.5rem;
+}
+
+.room-card .room-amenities {
+   display: flex;
+   flex-wrap: wrap;
+   gap: 0.8rem;
+   margin-bottom: 2.5rem;
+}
+
+.room-card .amenity-tag {
+   background: rgba(255, 255, 255, 0.05);
+   border: 1px solid rgba(255, 255, 255, 0.08);
+   padding: 0.4rem 1rem;
+   border-radius: 0.5rem;
+   font-size: 1.1rem;
+   color: var(--text-muted);
+}
+
+.price-preview-box {
+   background: rgba(212, 175, 55, 0.05);
+   border: 1px dashed var(--primary-gold);
+   border-radius: 0.8rem;
+   padding: 1.5rem;
+   margin: 1.5rem 0;
+   text-align: center;
+   display: none;
+}
+
+.price-preview-box p {
+   font-size: 1.5rem;
+   color: var(--text-light);
+}
+
+.price-preview-box .price-amount {
+   font-size: 2.2rem;
+   font-weight: 700;
+   color: var(--primary-gold);
+   margin-top: 0.5rem;
 }

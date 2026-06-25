@@ -13,21 +13,39 @@ if(isset($_COOKIE['user_id'])){
 if(isset($_POST['check'])){
 
    $check_in = clean_input($_POST['check_in']);
+   $check_out = clean_input($_POST['check_out']);
+   $adults = clean_input($_POST['adults']);
+   $childs = clean_input($_POST['childs']);
+   $rooms = clean_input($_POST['rooms']);
 
-   $total_rooms = 0;
-
-   $check_bookings = $conn->prepare("SELECT * FROM `bookings` WHERE check_in = ?");
-   $check_bookings->execute([$check_in]);
-
-   while($fetch_bookings = $check_bookings->fetch(PDO::FETCH_ASSOC)){
-      $total_rooms += $fetch_bookings['rooms'];
-   }
-
-   // if the hotel has total 30 rooms 
-   if($total_rooms >= 30){
-      $warning_msg[] = 'rooms are not available';
+   if(strtotime($check_in) < strtotime(date('Y-m-d'))){
+      $warning_msg[] = 'check-in date cannot be in the past!';
+   }elseif(strtotime($check_out) <= strtotime($check_in)){
+      $warning_msg[] = 'check-out date must be after check-in!';
    }else{
-      $success_msg[] = 'rooms are available';
+      // Check if any room meets capacity and has availability
+      $select_rooms = $conn->prepare("SELECT * FROM `rooms` WHERE status = 'available' AND capacity_adults >= ?");
+      $select_rooms->execute([$adults]);
+      
+      $available_found = false;
+      while($room = $select_rooms->fetch(PDO::FETCH_ASSOC)){
+         // check bookings overlap
+         $check_bookings = $conn->prepare("SELECT SUM(rooms) AS booked_rooms FROM `bookings` WHERE room_id = ? AND status != 'cancelled' AND check_in < ? AND check_out > ?");
+         $check_bookings->execute([$room['id'], $check_out, $check_in]);
+         $fetch_booked = $check_bookings->fetch(PDO::FETCH_ASSOC);
+         $booked_rooms = $fetch_booked['booked_rooms'] ? $fetch_booked['booked_rooms'] : 0;
+         
+         if(($room['total_rooms'] - $booked_rooms) >= $rooms){
+            $available_found = true;
+            break;
+         }
+      }
+      
+      if($available_found){
+         $success_msg[] = 'rooms are available for the selected dates!';
+      }else{
+         $warning_msg[] = 'no rooms available for the selected dates or capacity!';
+      }
    }
 
 }
@@ -43,33 +61,50 @@ if(isset($_POST['book'])){
    $check_out = clean_input($_POST['check_out']);
    $adults = clean_input($_POST['adults']);
    $childs = clean_input($_POST['childs']);
+   $room_id = clean_input($_POST['room_id']);
 
-   $total_rooms = 0;
-
-   // Logic to account for overlapping dates could be improved here in V2, 
-   // but keeping original logic flow for now, just cleaning it up.
-   $check_bookings = $conn->prepare("SELECT * FROM `bookings` WHERE check_in = ?");
-   $check_bookings->execute([$check_in]);
-
-   while($fetch_bookings = $check_bookings->fetch(PDO::FETCH_ASSOC)){
-      $total_rooms += $fetch_bookings['rooms'];
-   }
-
-   if($total_rooms >= 30){
-      $warning_msg[] = 'rooms are not available';
+   if(strtotime($check_in) < strtotime(date('Y-m-d'))){
+      $warning_msg[] = 'check-in date cannot be in the past!';
+   }elseif(strtotime($check_out) <= strtotime($check_in)){
+      $warning_msg[] = 'check-out date must be after check-in!';
    }else{
+      $select_room = $conn->prepare("SELECT * FROM `rooms` WHERE id = ? LIMIT 1");
+      $select_room->execute([$room_id]);
+      
+      if($select_room->rowCount() > 0){
+         $room = $select_room->fetch(PDO::FETCH_ASSOC);
+         
+         if($adults > $room['capacity_adults']){
+            $warning_msg[] = 'Selected room capacity exceeded for adults!';
+         } else {
+            // Check date overlap availability
+            $check_bookings = $conn->prepare("SELECT SUM(rooms) AS booked_rooms FROM `bookings` WHERE room_id = ? AND status != 'cancelled' AND check_in < ? AND check_out > ?");
+            $check_bookings->execute([$room_id, $check_out, $check_in]);
+            $fetch_booked = $check_bookings->fetch(PDO::FETCH_ASSOC);
+            $booked_rooms = $fetch_booked['booked_rooms'] ? $fetch_booked['booked_rooms'] : 0;
+            
+            if(($room['total_rooms'] - $booked_rooms) < $rooms){
+               $warning_msg[] = 'No rooms available of this type for the selected dates!';
+            } else {
+               $verify_bookings = $conn->prepare("SELECT * FROM `bookings` WHERE user_id = ? AND room_id = ? AND check_in = ? AND check_out = ? AND status != 'cancelled'");
+               $verify_bookings->execute([$user_id, $room_id, $check_in, $check_out]);
 
-      $verify_bookings = $conn->prepare("SELECT * FROM `bookings` WHERE user_id = ? AND name = ? AND email = ? AND number = ? AND rooms = ? AND check_in = ? AND check_out = ? AND adults = ? AND childs = ?");
-      $verify_bookings->execute([$user_id, $name, $email, $number, $rooms, $check_in, $check_out, $adults, $childs]);
-
-      if($verify_bookings->rowCount() > 0){
-         $warning_msg[] = 'room booked already!';
-      }else{
-         $book_room = $conn->prepare("INSERT INTO `bookings`(booking_id, user_id, name, email, number, rooms, check_in, check_out, adults, childs) VALUES(?,?,?,?,?,?,?,?,?,?)");
-         $book_room->execute([$booking_id, $user_id, $name, $email, $number, $rooms, $check_in, $check_out, $adults, $childs]);
-         $success_msg[] = 'room booked successfully!';
+               if($verify_bookings->rowCount() > 0){
+                  $warning_msg[] = 'You have already booked this room for these dates!';
+               }else{
+                  // Calculate price
+                  $nights = (strtotime($check_out) - strtotime($check_in)) / (60 * 60 * 24);
+                  $total_price = $room['price'] * $rooms * $nights;
+                  
+                  $book_room = $conn->prepare("INSERT INTO `bookings`(booking_id, room_id, user_id, name, email, number, rooms, check_in, check_out, adults, childs, total_price, status) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)");
+                  $book_room->execute([$booking_id, $room_id, $user_id, $name, $email, $number, $rooms, $check_in, $check_out, $adults, $childs, $total_price, 'pending']);
+                  $success_msg[] = 'Room booked successfully! Net Total: $' . $total_price;
+               }
+            }
+         }
+      } else {
+         $warning_msg[] = 'Invalid room selected!';
       }
-
    }
 
 }
@@ -90,7 +125,7 @@ if(isset($_POST['send'])){
    }else{
       $insert_message = $conn->prepare("INSERT INTO `messages`(id, name, email, number, message) VALUES(?,?,?,?,?)");
       $insert_message->execute([$id, $name, $email, $number, $message]);
-      $success_msg[] = 'message send successfully!';
+      $success_msg[] = 'message sent successfully!';
    }
 
 }

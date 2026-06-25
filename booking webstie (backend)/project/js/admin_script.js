@@ -1,14 +1,14 @@
-let navbar = document.querySelector('.header .flex .navbar');
-let menuBtn = document.querySelector('.header .flex #menu-btn');
+let header = document.querySelector('.header');
+let menuBtn = document.querySelector('#menu-btn');
 
 menuBtn.onclick = () =>{
    menuBtn.classList.toggle('fa-times');
-   navbar.classList.toggle('active');
+   header.classList.toggle('active');
 }
 
 window.onscroll = () =>{
    menuBtn.classList.remove('fa-times');
-   navbar.classList.remove('active');
+   header.classList.remove('active');
 }
 
 document.querySelectorAll('input[type="number"]').forEach(inputNumbmer => {
